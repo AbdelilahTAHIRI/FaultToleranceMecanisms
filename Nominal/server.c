@@ -61,11 +61,11 @@ int StoreWindow(void)
 	close(memory_fd);
 }
 
-int StoreCheckpoint(void)
+int StoreOutput(float output)
 {
 	int memory_fd;
 	memory_fd=open("/home/m2istr_21/FaultToleranceMecanisms/Nominal/tmp/memory_stable",O_APPEND);	
-	write(memory_fd,sliding_window,sizeof(sliding_window));
+	write(memory_fd,output,sizeof(output));
 	close(memory_fd);
 }
 
@@ -77,6 +77,7 @@ int main( int argc, char * argv[])
 	float mean=0.0;
 	int pid_wtd;
 	pid_wtd=atoi(argv[1]);
+	int memory_fd;
 
 
 	fd=open("/home/m2istr_21/FaultToleranceMecanisms/Nominal/tmp/fifo1", O_RDONLY);
@@ -85,21 +86,20 @@ int main( int argc, char * argv[])
 		sleep(1);
 		
 		printf("\n\n\n\nI am the server\n");
-		
 		if(read(fd,&sample,sizeof(sample))>0)
 		{
 			printf("I read %d from the FIFO\n\n\n\n",sample);
 			fflush(stdout);
 			kill(pid_wtd,SIGUSR1);
 			add_sample(sample);
-			StoreWindow();
+			memory_fd=open("/home/m2istr_21/FaultToleranceMecanisms/Nominal/tmp/memory_stable",O_WRONLY);	
+			write(memory_fd,output,sizeof(output));
 			mean=ComputeMean();
-			//StoreOutput(mean);
+			write(memory_fd,mean,sizeof(mean));
+			close(memory_fd);
 			print_result(mean);
-
 		}
-	printf("RECEIVED PID_WATCHDOG %d\n",pid_wtd);
-	fflush(stdout);
+
 	}
 }
 
