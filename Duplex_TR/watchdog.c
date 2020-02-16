@@ -80,7 +80,33 @@ int CreateKiller(int pid_to_kill)
 	}
 	return pid;
 }
-
+//This function creates an injector process to introduce fault in the specified server process
+int CreateInjector(int pid)
+{
+	int pid_injector;
+	char str_pid[4];
+	pid_injector=fork();
+	switch(pid_injector)
+	{
+		case -1: 
+			perror("WATCHDOG: fork");
+			exit(EXIT_FAILURE);
+		case 0 : 
+			sprintf(str_pid,"%d",pid);
+			char *args[]={"injector",str_pid,NULL};
+			int ret;
+			ret=execv("./bin/injector",args);
+			if(ret==-1)
+			{
+				perror("WATCHDOG: execv");
+				exit(EXIT_FAILURE);
+			}
+			break;
+		default:
+			break;			
+	}
+	return pid_injector;
+}
 static inline void tsnorm(struct timespec *ts)
 {
 	while(ts->tv_nsec>= NSEC_PER_SEC)
@@ -109,6 +135,7 @@ int main( int argc, char * argv[])
 	pid_t pid_primary;
 	pid_t pid_backup;
 	pid_t pid_killer;
+	pid_t pid_injector;
 	char str_pid_primary[4];
 	int ret;
 	char mode[4];
@@ -133,7 +160,10 @@ int main( int argc, char * argv[])
 	//Create BACKUP
 	pid_backup=CreateServer(BACKUP);
 	//Create Killer
-	pid_killer=CreateKiller(pid_primary);
+	//pid_killer=CreateKiller(pid_primary);
+	
+	//Create Fault Injector Process
+	pid_injector=CreateInjector(pid_primary);
 
 
 	while (1)
@@ -177,8 +207,7 @@ int main( int argc, char * argv[])
 			pid_primary=pid_backup; // changer le pid du primaire.
 			pid_backup=CreateServer(BACKUP);//Creer un nouveau Backup 
 			
-			//Create Killer
-			pid_killer=CreateKiller(pid_primary);
+			pid_injector=CreateInjector(pid_primary);
 		}
 		else
 		{

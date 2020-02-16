@@ -1,25 +1,51 @@
+/**
+@Content: This file contains the SENSOR process implementation. 
+				  It creates the sends floats via the fifo to the PRIMARY Server
+**/
+
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <fcntl.h>
 #include <time.h>
 #include "sensor.h"
+//Vector containing the data tha will be transmitted to the PRIMARY Server
+static float samples[10];
 
 int main( int argc, char * argv[])
 {
-	int buffer=0;
-	int fd;
-	fd=open("/home/m2istr_21/FaultToleranceMecanisms/Nominal/tmp/fifo1", O_WRONLY);
-	srand(time(NULL));   // Initialization, should only be called once.
+	float buffer=0;
+	int fifo;
+	int ret;
+	int i;
+	for(i=0;i<10;i++)
+	{
+		samples[i]=i+1;
+	}
+	printf("In sensor main\n");
+	//Open the fifo for write
+	fifo=open("./tmp/fifo1", O_WRONLY);
+	//srand(time(NULL));   // Initialization, should only be called once.
+	i=0;
 	while (1)
 	{
 		sleep(1);
-		//buffer = rand();
-		buffer=5000;
-		printf("\n\n\n\nI am the sensor\n\n\n\n");
+		//browse the samples[] vector circularly
+		if(i<=9)
+			buffer=samples[i];
+		else {
+			i=0;
+			buffer=samples[i];
+		}
+		i++;
 		
-		write(fd,&buffer,sizeof(buffer));
-		printf("I write %d in the FIFO\n\n\n\n",buffer);
+		printf("\nSENSOR: Deliver a new value\n");
+		fflush(stdout);
+		//send the sample in the FIFO
+		ret=write(fifo,&buffer,sizeof(buffer));
+		if(ret==-1)
+			perror("SENSOR: write");
+		printf("\nSENSOR: Delivered\n");
 		fflush(stdout);
 	}
 }

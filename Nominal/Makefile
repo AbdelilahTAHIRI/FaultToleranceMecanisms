@@ -5,8 +5,8 @@ BUILD=./build/
 
 CC=gcc
 CFLAGS=-I $(IDIR)
-LIST=$(BIN)/main $(BIN)/server $(BIN)/sensor $(BIN)/watchdog 
-DEPS = $(IDIR)/main.h $(IDIR)/sensor.h  $(IDIR)/server.h $(IDIR)/watchdog.h
+LIST=$(BIN)/main $(BIN)/server $(BIN)/sensor $(BIN)/watchdog $(BIN)/kick $(BIN)/killer  
+DEPS = $(IDIR)/main.h $(IDIR)/sensor.h  $(IDIR)/server.h $(IDIR)/watchdog.h $(IDIR)/kick.h $(IDIR)/killer.h
 
 
 all: $(LIST)

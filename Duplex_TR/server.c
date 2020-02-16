@@ -37,7 +37,7 @@ void init_window(void)
 	}
 }
 //This is the first version of the function computing the mean over the slinding window
-float Compute_Mean(void)
+float Compute_Mean1(void)
 {
 	float mean=0.0;
 	int count=0;
@@ -55,6 +55,99 @@ float Compute_Mean(void)
 	else
 		mean=0;
 	return mean;
+}
+//This is the second version of the function computing the mean over the slinding window
+//Becomes faulty when @wrong_mean2 is set 1
+float Compute_Mean2(void)
+{
+	float mean=0.0;
+	int count=0;
+	int i;
+	for(i=0;i<N;i++)
+	{
+		if(!isnan(sliding_window[i]))
+		{
+			mean+=sliding_window[i];
+			count++;
+		}
+	}
+	if(count!=0)
+		mean/=count;
+	else
+		mean=0;
+
+	if(wrong_mean2==1)
+	{
+		return mean-2*EPSILON;
+	}
+	else	
+		return mean;
+}
+//This is the Third version of the function computing the mean over the slinding window
+//Becomes faulty when @wrong_mean23is set 1
+float Compute_Mean3(void)
+{
+	float mean=0.0;
+	int count=0;
+	int i;
+	for(i=0;i<N;i++)
+	{
+		if(!isnan(sliding_window[i]))
+		{
+			mean+=sliding_window[i];
+			count++;
+		}
+	}
+	if(count!=0)
+		mean/=count;
+	else
+		mean=0;
+
+	if(wrong_mean3==1)
+	{
+		return mean+2*EPSILON;
+	}
+	else
+		return mean;
+}
+//this function perform the majority voting betweeen 3 floats.
+// It returns the result of the majority voting.
+float MajorityVoting( float candidate1,float candidate2,float candidate3)
+{
+	if(abs(candidate1-candidate2)<EPSILON || abs(candidate1-candidate3)<EPSILON)
+	{
+		return candidate1;
+	}
+	else if(abs(candidate3-candidate2)<EPSILON)
+	{
+		return candidate2;
+	}
+	else
+		return NaN;
+	
+} 
+//This is the function delivering vering the service. It contains the self-checking mecanism based on majority voting
+float self_checking_service(void)
+{
+	float mean1,mean2,mean3,vote;
+	mean1=Compute_Mean1();
+	
+	mean2=Compute_Mean2();
+	if(abs(mean1-mean2)<EPSILON)
+		return mean1;
+	else
+	{
+		mean3=Compute_Mean3();
+		vote=MajorityVoting(mean1,mean2,mean3);
+		if(isnan(vote)) //Si desacord entre les trois
+		{
+			printf("\033[1;31m PRIMARY: Fail Silent!\033[0m\n");
+			fflush(stdout);
+			kill(getppid(),SIGUSR2);//Notifier le Watchdog pour lui permettre de mesurer le temps de detection
+			exit(EXIT_FAILURE);
+		}
+		return vote;		
+	}
 }
 //This function adds the passed sample to the sliding_window
 void add_sample(float sample)
@@ -211,7 +304,7 @@ void ReadCheckpoint(void)
 	close(memory_fd);	
 }
 //this function receives the data from the FIFO
-int RevceiveSample(float * buff)
+int ReceiveSample(float * buff)
 {
 	int memory_fd;
 	int ret;
@@ -219,7 +312,7 @@ int RevceiveSample(float * buff)
 	if(ret==-1)
 	{
 		if (errno == EINTR) // read is interruted by a signal handling
-			return RevceiveSample(buff);
+			return ReceiveSample(buff);
 		if (errno == EAGAIN) //there is no sample in FIFO
 			return ret;
 		else {
@@ -301,8 +394,10 @@ int main( int argc, char * argv[])
 	mode=atoi(argv[1]);
 	//initialize the sliding window with NaN values
 	init_window();
+	
 	//open the fifo to get sensor from data
 	fifo_fd=open("./tmp/fifo1", O_RDONLY);
+	
 	//install the SIGUSR1 handler
 	if(signal(SIGUSR1 ,sigHandler)==SIG_ERR) 
 	{
@@ -333,7 +428,7 @@ int main( int argc, char * argv[])
 			if(switched==0)
 			{
 				//receive new sample from the sensor
-				ret=RevceiveSample(&sample);
+				ret=ReceiveSample(&sample);
 				if(ret>0)
 				{
 					add_sample(sample);
@@ -342,8 +437,8 @@ int main( int argc, char * argv[])
 					ftruncate(memory_fd,0);
 					//Store the sliding_window of the PRIMARY to the stable memory
 					WriteWindow(memory_fd);
-					//Service delivering
-					mean=Compute_Mean();
+					//Service delevering
+					mean=self_checking_service();
 					//Store the service output in the stable memory
 					WriteOutput(memory_fd, mean);
 					//print the service output
@@ -363,7 +458,7 @@ int main( int argc, char * argv[])
 				if(isnan(output))//there is no output in the checkpoint readed.
 				{
 					//Compute the Mean based on the sliding window readed from the checkpoint
-					mean=Compute_Mean();
+					mean=self_checking_service();
 					//Open the stable memory in append mode
 					memory_fd=open("./tmp/memory_stable", O_WRONLY| O_TRUNC | O_SYNC);
 					
