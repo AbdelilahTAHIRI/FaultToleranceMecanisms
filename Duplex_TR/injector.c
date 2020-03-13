@@ -17,11 +17,13 @@ int main( int argc, char * argv[])
 	int pid_primary=atoi(argv[1]);
 	//Wait 12 seconds
 	sleep(12);
-	//Send signal to make the Compute_Mean2() function faulty. 
+	//Send signal to make the Compute_Mean2() function faulty.
+	printf("\033[1;31mINJECTOR: V2 Fault injection\033[0m\n"); 
 	kill(pid_primary,SIGUSR1);
 	//Wait 2 seconds
 	sleep(2);
-	//Send signal to make the Compute_Mean2() function faulty. 
+	//Send signal to make the Compute_Mean2() function faulty.
+	printf("\033[1;31mINJECTOR: V3 Fault injection\033[0m\n");  
 	kill(pid_primary,SIGUSR1);
 	//Exit
 	exit(EXIT_SUCCESS);

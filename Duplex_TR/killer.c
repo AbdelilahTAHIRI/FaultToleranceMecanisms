@@ -23,7 +23,7 @@ int main( int argc, char * argv[])
 	//Notify the crash fault injection to the WATCHDOG ( for tie detection measurment)
 	kill(getppid(), SIGUSR2);
 	
-	printf("\033[1;31m KILLER: PRIMARY Killed \033[0m\n");
+	printf("\033[1;31mKILLER: PRIMARY Killed \033[0m\n");
 	fflush(stdout);
 
 	//Exit

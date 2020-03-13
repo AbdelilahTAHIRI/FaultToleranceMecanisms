@@ -30,7 +30,7 @@ int main( int argc, char * argv[])
 	{
 		sleep(1);
 		//browse the samples[] vector circularly
-		if(i<=9)
+		if(i<9)
 			buffer=samples[i];
 		else {
 			i=0;
@@ -38,7 +38,7 @@ int main( int argc, char * argv[])
 		}
 		i++;
 		
-		printf("\nSENSOR: Deliver a new value\n");
+		printf("SENSOR: Deliver a new value\n");
 		fflush(stdout);
 		//send the sample in the FIFO
 		ret=write(fifo,&buffer,sizeof(buffer));

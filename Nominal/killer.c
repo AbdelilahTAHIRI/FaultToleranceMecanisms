@@ -17,7 +17,7 @@ int main( int argc, char * argv[])
 	//Get the PID of the process to kill
 	int pid_to_kill=atoi(argv[1]);
 	//Wait some time
-	sleep(13);
+	sleep(20);
 	//Kill the process with PID passed in argument
 	kill(pid_to_kill, SIGKILL);
 	//Notify the crash fault injection to the WATCHDOG ( for tie detection measurment)

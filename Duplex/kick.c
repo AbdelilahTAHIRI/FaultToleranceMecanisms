@@ -37,8 +37,8 @@ int main( int argc, char * argv[])
 		else
 		{
 			//Wait a period of 1 second
-			sleep(1);
-			printf("KICK: kick the WATCHDOG\n");
+			usleep(100);
+			//printf("KICK: kick the WATCHDOG\n");
 			fflush(stdout);
 			//Kick the WATCHDOG
 			kick(pid_wtd);

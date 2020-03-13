@@ -14,6 +14,16 @@ static float output;
 static int outputprinted;
 static int switched=0; 
 static int fifo_fd;
+int window_is_empty(void)
+{
+	int i;
+	for(i=0;i<N;i++)
+	{
+		if(!isnan(sliding_window[i]))
+			return 0;
+	}
+	return 1;
+}
 void init_window(void)
 {
 	int i;
@@ -66,6 +76,84 @@ void print_result(float result)
 	printf("\033[1;32mThe Mean Value is %.2f \033[0m",result);
 	fflush(stdout);
 }
+//This function reads the sliding window from the checkpoint
+void ReadWindow(int fd)
+{
+	int ret;
+	ret=read(fd,sliding_window,sizeof(sliding_window));
+
+	if(ret==-1) 
+	{
+		if (errno == EINTR) // read is interruted by a signal handling
+			ReadWindow(fd);
+		if (errno == EAGAIN) //there is no input value in checkpoint
+			{printf("\033[1;32m there is no input value in checkpoint \033[0m \n");
+			fflush(stdout);}
+			//cas grave, le serveur doit continuer le service avec les donnes internes qu'il a dans sa memoir interne
+		else
+			perror("SERVER: read error");
+	}
+
+}
+//This function reads the output from the checkpoint
+float ReadOutput(int fd)
+{
+	int ret;
+	float buf;
+	ret=read(fd, &buf, sizeof(buf));
+	/*printf("ret=%d\n",ret);
+	fflush(stdout);*/
+	if(ret==-1)
+	{
+		if (errno == EINTR) // read is interruted by a signal handling
+			return ReadOutput(fd);
+		if (errno == EAGAIN) //there is no output value in checkpoint
+			return NaN;
+		else {
+			return NaN;
+			perror("SERVER: read error");}
+	}
+	else if(ret==0)
+		return NaN;
+	else
+		return buf;
+
+}
+//This function reads the outputprinted flag from the checkpoint
+int ReadOutputIsPrinted(int fd)
+{
+	int ret;
+	int buf;
+	ret=read(fd, &buf, sizeof(buf));
+	if(ret==-1)
+	{
+		if (errno == EINTR) // read is interruted by a signal handling
+			return ReadOutputIsPrinted(fd);
+		if (errno == EAGAIN) //there is no output value in checkpoint
+			return 0;
+		else
+			return -1;
+			perror("SERVER: read error");
+	}
+	else if(ret==0)
+		return 0;
+	else
+		return buf;
+
+}
+//This function reads the checkpoint from the memory and store it in internal variables of the server		
+/*void ReadCheckpoint(void)
+{
+	int memory_fd;
+	int ret;
+	memory_fd=open("./tmp/memory_stable",O_RDONLY | O_NONBLOCK);
+	ReadWindow(memory_fd);
+	output=ReadOutput(memory_fd);
+
+	outputprinted=ReadOutputIsPrinted(memory_fd);
+
+	close(memory_fd);	
+}*/
 
 void ReadCheckPoint(void)
 {
@@ -77,7 +165,7 @@ void ReadCheckPoint(void)
 	if(ret==-1) 
 	{
 		if (errno == EINTR) // read is interruted by a signal handling
-		goto read1; 
+		printf("read is interruted by a signal handling");//goto read1; 
 		if (errno == EAGAIN) //there is no input value in checkpoint
 			printf("\nthere is no input value in checkpoint\n");
 			//cas grave, le serveur commence de collecter les donnees a nouveau
@@ -86,7 +174,7 @@ void ReadCheckPoint(void)
 	}
 	else if(ret==0)
 	{
-		printf("\nthere is no input value in checkpoint\n");
+		printf("\nthere is no input value in checkpoint init window then\n");
 		//cas grave, le serveur commence de collecter les donnees a nouveau
 		init_window();
 		output=NaN;
@@ -98,7 +186,7 @@ void ReadCheckPoint(void)
 	if(ret==-1) 
 	{
 		if (errno == EINTR) // read is interruted by a signal handling
-		goto read2;
+		printf("read is interruted by a signal handling");//goto read2;
 		if (errno == EAGAIN) //there is no output value in checkpoint
 			output=NaN;
 		else
@@ -114,7 +202,7 @@ void ReadCheckPoint(void)
 	if(ret==-1) 
 	{
 		if (errno == EINTR) // read is interruted by a signal handling
-		goto read3;
+		printf("read is interruted by a signal handling");//goto read3;
 		if (errno == EAGAIN) //there is no output value in checkpoint
 			outputprinted=0;
 		else
@@ -284,7 +372,7 @@ int main( int argc, char * argv[])
 			{
 				switched=0;//Reinit the switched variable.
 				
-				if(isnan(output))//there is no output in the checkpoint readed.
+				if(isnan(output) && !window_is_empty())//there is no output in the checkpoint readed.
 				{
 					//Compute the Mean based on the sliding window readed from the checkpoint
 					mean=Compute_Mean();
@@ -300,15 +388,17 @@ int main( int argc, char * argv[])
 					WriteOutputIsPrinted(memory_fd,printed);
 					close(memory_fd);
 				}
-				else if(outputprinted==0) //the readed checkpoint contains an output value that was not printed
+				else if(outputprinted==0 && !window_is_empty()) //the readed checkpoint contains an output value that was not printed
 				{
 					print_result(output);
 					continue;
 				}
-				else if(outputprinted==1)//the readed checkpoint contains an output value that was printed
+				else if(outputprinted==1 && !window_is_empty())//the readed checkpoint contains an output value that was printed
 				{
 					continue;
 				}
+				else
+					continue;
 
 			}
 			fflush(stdout);

@@ -1,14 +1,23 @@
+/**
+@Content: This file contains the WATCHDOG process implementation
+**/
+
 #include <signal.h>
-#include "watchdog.h"
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <fcntl.h>
 #include <time.h>
 #include <sys/wait.h>
+#include "watchdog.h"
 
+//int clock_gettime(clockid_t clk_id, struct timespec *tp);
 static int cout=0;
 static int ServerCount=1;
+//timespec struct to measure detection time.
+static struct timespec ts1;
+static struct timespec ts2;
+
 int IncCount( ) {
 cout += 1 ;
 return ( cout ) ;
@@ -77,7 +86,15 @@ int CreateKiller(int pid_to_kill)
 
 static void sigHandler(int sig)
 {
-	IncCount();
+	int ret;
+	if(sig==SIGUSR1)
+		IncCount();
+	else if(sig==SIGUSR2)
+	{
+		ret = clock_gettime (CLOCK_MONOTONIC, &ts1);
+		if (ret)
+			perror ("clock_gettime");
+	}
 }
 
 
@@ -90,15 +107,22 @@ int main( int argc, char * argv[])
 	int ret;
 	int status;
 	int fifo_fd;
+	float delay;
+	int i=0;
 	
 	if(signal(SIGUSR1 ,sigHandler)==SIG_ERR) 
 	{
 		perror("signal");
 		exit(EXIT_FAILURE);
 	}
+
+	if(signal(SIGUSR2 ,sigHandler)==SIG_ERR) 
+	{
+		perror("signal");
+		exit(EXIT_FAILURE);
+	}
 	
 	fifo_fd=open("./tmp/fifo1", O_RDONLY);
-	
 	ServerCount=1;
 	pid_primary= CreateServer(ServerCount);
 	
@@ -108,9 +132,21 @@ int main( int argc, char * argv[])
 	while (1)
 	{
 		memory_counter=GetCount();
-		sleep(2);//Attendre le temps que le primaire donne un coup de pied au watchdog
+		//sleep(TIMEOUT);//Attendre le temps que le primaire donne un coup de pied au watchdog
+		for(i=0;i<150;i++)
+		{usleep(1);}
+	
 		if(memory_counter==GetCount())
 		{
+			//Get the time detection
+			ret = clock_gettime (CLOCK_MONOTONIC, &ts2);
+			if (ret) {perror ("clock_gettime");}
+			
+			//Compute the Delay Time
+			delay=(ts2.tv_sec-ts1.tv_sec)+(ts2.tv_nsec-ts1.tv_nsec)*0.0000000001;
+			
+			printf("\033[1;33m Detection time is %f sec \n",delay);
+
 			printf("\033[1;33m WATCHDOG: Server Process is dead\n");
 			fflush(stdout);
 			kill(pid_primary, SIGKILL); //tuer le primaire defaillant
@@ -135,7 +171,7 @@ int main( int argc, char * argv[])
 		}
 		else
 		{
-			printf("\033[1;32m WATCHDOG: PRIMARY Still Alive\033[0m \n");
+			//printf("\033[1;32m WATCHDOG: PRIMARY Still Alive\033[0m \n");
 			fflush(stdout);
 		}
 	}

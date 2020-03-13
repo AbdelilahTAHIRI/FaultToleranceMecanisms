@@ -366,7 +366,7 @@ static void sigHandler(int sig)
 {
 	if(sig==SIGUSR2)
 	{
-		printf("\033[1;33m RECOVERY HANDLING \033[0m\n");
+		//printf("\033[1;33m RECOVERY HANDLING \033[0m\n");
 		mode=PRIMARY;
 		switched=1;
 		recoveryhandler();
@@ -424,7 +424,7 @@ int main( int argc, char * argv[])
 		//PRIMARY Mode
 		if(mode==PRIMARY) 
 		{
-			printf("\nPRIMARY: Deliver service\n");
+			
 			if(switched==0)
 			{
 				//receive new sample from the sensor
@@ -442,6 +442,7 @@ int main( int argc, char * argv[])
 					//Store the service output in the stable memory
 					WriteOutput(memory_fd, mean);
 					//print the service output
+					printf("PRIMARY: Deliver service\n");
 					print_result(mean);
 					//Store the printing flag in the stable memory
 					printed=1;
@@ -464,6 +465,7 @@ int main( int argc, char * argv[])
 					
 					//Store the service output in the stable memory
 					WriteOutput(memory_fd, mean);
+					printf("PRIMARY: Deliver service\n");
 					//print the service output
 					print_result(mean);
 					//Store the printing flag in the stable memory
@@ -473,6 +475,7 @@ int main( int argc, char * argv[])
 				}
 				else if(outputprinted==0) //the readed checkpoint contains an output value that was not printed
 				{
+					printf("PRIMARY: Deliver service\n");
 					print_result(output);
 					continue;
 				}
@@ -487,7 +490,7 @@ int main( int argc, char * argv[])
 		else if (mode==BACKUP) //BACKUP Mode
 		{
 			sleep(1);
-			printf("\nBACKUP: Save Checkpoint\n");
+			printf("BACKUP: Save Checkpoint\n");
 			//Continuously read of the stable memory and store it in the internal variables of the server
 			ReadCheckpoint();
 			fflush(stdout);

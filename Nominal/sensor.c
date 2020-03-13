@@ -22,7 +22,6 @@ int main( int argc, char * argv[])
 	{
 		samples[i]=i+1;
 	}
-	printf("In sensor main\n");
 	//Open the fifo for write
 	fifo=open("./tmp/fifo1", O_WRONLY);
 	//srand(time(NULL));   // Initialization, should only be called once.
@@ -31,7 +30,7 @@ int main( int argc, char * argv[])
 	{
 		sleep(1);
 		//browse the samples[] vector circularly
-		if(i<=9)
+		if(i<9)
 			buffer=samples[i];
 		else {
 			i=0;
@@ -39,13 +38,11 @@ int main( int argc, char * argv[])
 		}
 		i++;
 		
-		printf("\nSENSOR: Deliver a new value\n");
+		printf("SENSOR: Deliver a new value\n");
 		fflush(stdout);
 		//send the sample in the FIFO
 		ret=write(fifo,&buffer,sizeof(buffer));
 		if(ret==-1)
 			perror("SENSOR: write");
-		printf("\nSENSOR: Delivered\n");
-		fflush(stdout);
 	}
 }

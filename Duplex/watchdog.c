@@ -141,7 +141,7 @@ int main( int argc, char * argv[])
 		//get the current counter
 		memory_counter=GetCount();
 		//sleep(TIMEOUT);//Attendre le temps que le primaire donne un coup de pied au watchdog
-		for(i=0;i<20000;i++)
+		for(i=0;i<150;i++)
 		{usleep(1);}
 		//If the counter is changed
 		if(memory_counter==GetCount())
@@ -154,7 +154,7 @@ int main( int argc, char * argv[])
 			delay=(ts2.tv_sec-ts1.tv_sec)+(ts2.tv_nsec-ts1.tv_nsec)*0.0000000001;
 			
 			printf("\033[1;33m Detection time is %f sec \n",delay);
-			printf("WATCHDOG: PRIMARY is dead: ");
+			printf("\033[1;33m WATCHDOG: PRIMARY is dead: ");
 
 			//Send signal to BACKUP to Set it in PRIMARY mode
 			kill(pid_backup, SIGUSR2);
@@ -182,7 +182,7 @@ int main( int argc, char * argv[])
 		}
 		else
 		{
-			printf("\033[1;32m WATCHDOG: PRIMARY Still Alive\033[0m \n");
+			//printf("\033[1;32m WATCHDOG: PRIMARY Still Alive\033[0m \n");
 			fflush(stdout);
 		}
 	}
